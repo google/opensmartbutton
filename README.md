@@ -1,3 +1,5 @@
+NOTE: This project is not supported by Google in any way.
+
 # Open Smart Button
 
 Open Smart button is a project to create affordable Bluetooth Low Energy (BLE) buttons
