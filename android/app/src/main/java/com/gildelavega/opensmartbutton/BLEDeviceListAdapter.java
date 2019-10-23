@@ -16,19 +16,38 @@
 
 package com.gildelavega.opensmartbutton;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 public class BLEDeviceListAdapter extends ArrayAdapter<BluetoothDevice> {
 
+    Context context;
     public BLEDeviceListAdapter(@NonNull Context context) {
         super(context, R.layout.ble_device_row);
+        this.context = context;
     }
 
     public void addDevice(BluetoothDevice device) {
         add(device);
+    }
+
+    @NonNull
+    @Override
+    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        LayoutInflater inflater = (LayoutInflater) this.context
+                .getSystemService(Activity.LAYOUT_INFLATER_SERVICE);
+        View rowView = inflater.inflate(R.layout.ble_device_row, parent, false);
+        TextView textView = rowView.findViewById(R.id.ble_device_text);
+        textView.setText(this.getItem(position).getName());
+        return rowView;
     }
 }
