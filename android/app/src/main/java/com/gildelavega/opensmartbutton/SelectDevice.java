@@ -29,8 +29,7 @@ public class SelectDevice extends ListActivity {
     private static final long SCAN_PERIOD = 10000;
 
     private BluetoothAdapter bluetoothAdapter;
-    final BluetoothManager bluetoothManager =
-            (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+    private BluetoothManager bluetoothManager;
 
     private boolean scanning;
     private Handler handler;
@@ -78,6 +77,12 @@ public class SelectDevice extends ListActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_select_device);
 
+        bleDeviceListAdapter = new BLEDeviceListAdapter(this);
+        setListAdapter(bleDeviceListAdapter);
+
+        bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         bluetoothAdapter = bluetoothManager.getAdapter();
+
+        scanLeDevice(true);
     }
 }

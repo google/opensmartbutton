@@ -22,4 +22,10 @@
     android:layout_height="match_parent"
     tools:context=".SelectDevice">
 
+    <ListView
+        android:id="@android:id/list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:headerDividersEnabled="true"/>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
