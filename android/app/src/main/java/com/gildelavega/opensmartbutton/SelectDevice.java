@@ -21,8 +21,11 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.View;
+import android.widget.ListView;
 
 public class SelectDevice extends ListActivity {
 
@@ -84,5 +87,13 @@ public class SelectDevice extends ListActivity {
         bluetoothAdapter = bluetoothManager.getAdapter();
 
         scanLeDevice(true);
+    }
+
+    @Override
+    protected void onListItemClick(ListView l, View v, int position, long id) {
+        BluetoothDevice device = bleDeviceListAdapter.getItem(position);
+        Intent intent = new Intent(this, GetBLENotifications.class);
+        intent.putExtra(GetBLENotifications.EXTRA_BLE_DEVICE, device);
+        startService(intent);
     }
 }

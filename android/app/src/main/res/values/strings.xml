@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">OpenSmartButton</string>
     <string name="action_settings">Settings</string>
+    <string name="notification_title">OpenSmartButton</string>
+    <string name="notification_message">Receiving BLE notifications</string>
+    <string name="notification_ticker">OpenSmartButton active</string>
 </resources>
