@@ -62,7 +62,7 @@ void setup_ble(){
 
 /** Debounce
  *  
- *  Returns true if input value is valid.
+ *  Returns true if this is the first reading after a switch.
  */
 bool debounce(){
   unsigned long readTime = micros();
@@ -79,6 +79,8 @@ bool debounce(){
 void onPinChanged(){
   Serial.println("On pin changed");
   if(debounce() == true){
+    // Wait until value has estabilized
+    delay((unsigned long)DEBOUNCE_TIME_MICROS/1000);
     if(connected == true){
       // Read input and store
       uint8_t value =  0;
@@ -92,7 +94,7 @@ void onPinChanged(){
       Serial.println("Notification sent");
     }
     else{
-      Serial.println("Interrupted but not connected");
+      Serial.println("Value not sent. Not connected.");
     }
   }
 }
