@@ -7,7 +7,7 @@
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
 #define INPUT_PIN 33
-#define DEBOUNCE_TIME_MICROS 35000
+#define DEBOUNCE_TIME_MICROS 50000
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
