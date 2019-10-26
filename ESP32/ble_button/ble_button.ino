@@ -7,11 +7,13 @@
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
 #define INPUT_PIN 33
+#define DEBOUNCE_TIME_MICROS 35000
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
 
 bool connected = false;
+unsigned long lastValidReadTime = 0;
 
 
 class BLECallback: public BLEServerCallbacks {
@@ -58,23 +60,40 @@ void setup_ble(){
 }
 
 
-void notify(){
-  Serial.println("On interrupt");
-
-  if(connected == true){
-    // Read input and store
-    uint8_t value =  0;
-    if(digitalRead(INPUT_PIN) == HIGH){
-      value = 1;
-    }
-  
-    // Send 1 byte of data with value
-    pCharacteristic->setValue((uint8_t*)&value, 1);
-    pCharacteristic->notify();
-    Serial.println("Notification sent");
+/** Debounce
+ *  
+ *  Returns true if input value is valid.
+ */
+bool debounce(){
+  unsigned long readTime = micros();
+  if(readTime - lastValidReadTime > DEBOUNCE_TIME_MICROS){
+    lastValidReadTime = readTime;
+    return true;
   }
   else{
-    Serial.println("Interrupted but not connected");
+    return false;
+  }
+}
+
+
+void onPinChanged(){
+  Serial.println("On pin changed");
+  if(debounce() == true){
+    if(connected == true){
+      // Read input and store
+      uint8_t value =  0;
+      if(digitalRead(INPUT_PIN) == HIGH){
+        value = 1;
+      }
+    
+      // Send 1 byte of data with value
+      pCharacteristic->setValue((uint8_t*)&value, 1);
+      pCharacteristic->notify();
+      Serial.println("Notification sent");
+    }
+    else{
+      Serial.println("Interrupted but not connected");
+    }
   }
 }
 
@@ -89,7 +108,7 @@ void setup() {
   pinMode(INPUT_PIN, INPUT);
 
   // Attach interrupt to input pin
-  attachInterrupt(INPUT_PIN, notify, CHANGE);
+  attachInterrupt(INPUT_PIN, onPinChanged, CHANGE);
 }
 
 
