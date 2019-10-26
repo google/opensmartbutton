@@ -7,13 +7,13 @@
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
 #define INPUT_PIN 33
-#define DEBOUNCE_TIME_MICROS 100000
+#define DEBOUNCE_TIME_MILLIS 50
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
 
 bool connected = false;
-unsigned long lastValidReadTime = 0;
+bool pendingValue = false;
 
 
 class BLECallback: public BLEServerCallbacks {
@@ -60,43 +60,26 @@ void setup_ble(){
 }
 
 
-/** Debounce
- *  
- *  Returns true if this is the first reading after a switch.
- */
-bool debounce(){
-  unsigned long readTime = micros();
-  if(readTime - lastValidReadTime > DEBOUNCE_TIME_MICROS){
-    lastValidReadTime = readTime;
-    return true;
+void notify(){
+  if(connected == true){
+    // Read input and store
+    uint8_t value =  0;
+    if(digitalRead(INPUT_PIN) == HIGH){
+      value = 1;
+    }
+  
+    // Send 1 byte of data with value
+    pCharacteristic->setValue((uint8_t*)&value, 1);
+    pCharacteristic->notify();
+    Serial.println("Notification sent");
   }
   else{
-    return false;
+    Serial.println("Value not sent. Not connected.");
   }
 }
 
-
-void onPinChanged(){
-  Serial.println("On pin changed");
-  if(debounce() == true){
-    // Wait until value has estabilized
-    delay((unsigned long)DEBOUNCE_TIME_MICROS/1000);
-    if(connected == true){
-      // Read input and store
-      uint8_t value =  0;
-      if(digitalRead(INPUT_PIN) == HIGH){
-        value = 1;
-      }
-    
-      // Send 1 byte of data with value
-      pCharacteristic->setValue((uint8_t*)&value, 1);
-      pCharacteristic->notify();
-      Serial.println("Notification sent");
-    }
-    else{
-      Serial.println("Value not sent. Not connected.");
-    }
-  }
+void IRAM_ATTR onPinChanged(){
+  pendingValue = true;
 }
 
 
@@ -115,6 +98,11 @@ void setup() {
 
 
 void loop() {
-  delay(10000);
-  Serial.println("loop");
+  if(pendingValue == true){
+    // Wait for pin to stabilize
+    delay(DEBOUNCE_TIME_MILLIS);
+    notify();
+    pendingValue = false;
+  }
+  delay(10);
 }
