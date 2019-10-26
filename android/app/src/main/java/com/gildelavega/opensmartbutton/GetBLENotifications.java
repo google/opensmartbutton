@@ -137,9 +137,15 @@ public class GetBLENotifications extends Service {
 // Characteristic notification
                 public void onCharacteristicChanged(BluetoothGatt gatt,
                                                     BluetoothGattCharacteristic characteristic) {
+                    int value = characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8,
+                            0);
                     Log.i(TAG, "Notification. Value: " +
                             characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8,
                                     0));
+                    Intent intent = new Intent(value==1?"com.zello.ptt.down":"com.zello.ptt.up");
+                    intent.putExtra("com.zello.stayHidden", true);
+                    GetBLENotifications.this.sendBroadcast(intent);
+                    Log.i(TAG, "Intent sent");
                 }
             };
 
