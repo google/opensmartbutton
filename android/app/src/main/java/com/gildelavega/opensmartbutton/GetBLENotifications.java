@@ -137,7 +137,9 @@ public class GetBLENotifications extends Service {
 // Characteristic notification
                 public void onCharacteristicChanged(BluetoothGatt gatt,
                                                     BluetoothGattCharacteristic characteristic) {
-                    Log.i(TAG, "Notification");
+                    Log.i(TAG, "Notification. Value: " +
+                            characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8,
+                                    0));
                 }
             };
 
