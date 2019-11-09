@@ -8,6 +8,7 @@
 
 #define INPUT_PIN 0
 #define DEBOUNCE_TIME_MILLIS 50
+#define SLEEP_TIME_MILLIS 10000
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
@@ -15,10 +16,47 @@ BLECharacteristic* pCharacteristic = NULL;
 bool connected = false;
 bool pendingValue = false;
 
+unsigned long lastEvent = 0;
+
+
+bool notify(){
+  bool notified = false;
+  if(connected == true){
+    delay(500); //Wait for stable connection
+    // Read input and store
+    uint8_t value =  0;
+    if(digitalRead(INPUT_PIN) == LOW){
+      value = 1;
+    }
+  
+    // Send 1 byte of data with value
+    pCharacteristic->setValue((uint8_t*)&value, 1);
+    pCharacteristic->notify();
+    Serial.println("Notification sent");
+    notified = true;
+  }
+  else{
+    Serial.println("Value not sent. Not connected.");
+  }
+  return notified;
+}
+
 
 class BLECallback: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       Serial.println("Connected");
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL0, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL1, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL2, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL3, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL4, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL5, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL6, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL7, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_CONN_HDL8, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN, ESP_PWR_LVL_N12);
+//      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_N12);
       connected = true;
     };
 
@@ -60,30 +98,18 @@ void setup_ble(){
 }
 
 
-void notify(){
-  if(connected == true){
-    // Read input and store
-    uint8_t value =  0;
-    if(digitalRead(INPUT_PIN) == LOW){
-      value = 1;
-    }
-  
-    // Send 1 byte of data with value
-    pCharacteristic->setValue((uint8_t*)&value, 1);
-    pCharacteristic->notify();
-    Serial.println("Notification sent");
-  }
-  else{
-    Serial.println("Value not sent. Not connected.");
-  }
+void newValue(){
+  pendingValue = true;
+  lastEvent = millis();
 }
+
 
 void IRAM_ATTR onPinChanged(){
-  pendingValue = true;
+  newValue();
 }
 
-
 void setup() {
+  setCpuFrequencyMhz(80);
   Serial.begin(115200);
 
   // Set up BLE
@@ -97,12 +123,28 @@ void setup() {
 }
 
 
-void loop() {
-  if(pendingValue == true){
-    // Wait for pin to stabilize
-    delay(DEBOUNCE_TIME_MILLIS);
-    notify();
-    pendingValue = false;
-  }
+void go_to_sleep(){
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_0,0);
+  Serial.println("Sleeping...");
   delay(10);
+  esp_light_sleep_start();
+  Serial.println("Woken up");
+  connected = false;
+  newValue();
+}
+
+
+void loop() {
+  while(pendingValue == true){
+    // Wait for pin to stabilize
+    delay(100);
+    if(notify()){
+      pendingValue = false;
+    }
+  }
+  if(connected == true){
+    if(millis() - lastEvent > SLEEP_TIME_MILLIS){
+      go_to_sleep();
+    }
+  }
 }
