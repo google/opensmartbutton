@@ -6,7 +6,7 @@
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
 
-#define INPUT_PIN 33
+#define INPUT_PIN 0
 #define DEBOUNCE_TIME_MILLIS 50
 
 BLEServer* pServer = NULL;
@@ -64,7 +64,7 @@ void notify(){
   if(connected == true){
     // Read input and store
     uint8_t value =  0;
-    if(digitalRead(INPUT_PIN) == HIGH){
+    if(digitalRead(INPUT_PIN) == LOW){
       value = 1;
     }
   
