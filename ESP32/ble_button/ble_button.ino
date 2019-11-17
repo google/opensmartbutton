@@ -12,6 +12,7 @@
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pCharacteristic = NULL;
+BLEAdvertising *pAdvertising = NULL;
 
 bool connected = false;
 bool pendingValue = false;
@@ -57,12 +58,14 @@ class BLECallback: public BLEServerCallbacks {
 //      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_ADV, ESP_PWR_LVL_N12);
 //      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_SCAN, ESP_PWR_LVL_N12);
 //      esp_ble_tx_power_set(ESP_BLE_PWR_TYPE_DEFAULT, ESP_PWR_LVL_N12);
+      pAdvertising->stop();
       connected = true;
     };
 
     void onDisconnect(BLEServer* pServer) {
       Serial.println("Disconnected");
       connected = false;
+      BLEDevice::startAdvertising();
     }
 };
 
@@ -89,7 +92,7 @@ void setup_ble(){
   pService->start();
 
   // Start advertising
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
   pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x0);  // set value to 0x00 to not advertise this parameter
@@ -120,6 +123,7 @@ void setup() {
 
   // Attach interrupt to input pin
   attachInterrupt(INPUT_PIN, onPinChanged, CHANGE);
+  
 }
 
 
@@ -135,16 +139,16 @@ void go_to_sleep(){
 
 
 void loop() {
-  while(pendingValue == true){
-    // Wait for pin to stabilize
-    delay(100);
-    if(notify()){
-      pendingValue = false;
-    }
-  }
-  if(connected == true){
-    if(millis() - lastEvent > SLEEP_TIME_MILLIS){
-      go_to_sleep();
-    }
-  }
+//  while(pendingValue == true){
+//    if(notify()){
+//      pendingValue = false;
+//    }
+//  }
+//  if(connected == true){
+//    if(millis() - lastEvent > SLEEP_TIME_MILLIS){
+//      go_to_sleep();
+//    }
+//  }
+//  delay(100);
+  return;
 }
