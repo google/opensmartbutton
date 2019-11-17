@@ -119,6 +119,7 @@ public class GetBLENotifications extends Service {
                                 gatt.getService(SERVICE_UUID).
                                         getCharacteristic(CHARACTERISTIC_UUID);
                         Log.i(TAG, "Characteristic got");
+                        gatt.setCharacteristicNotification(characteristic, false);
                         gatt.setCharacteristicNotification(characteristic, true);
                         Log.i(TAG, "Set characteristic notification");
                         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
