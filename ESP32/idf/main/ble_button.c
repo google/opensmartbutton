@@ -20,6 +20,7 @@
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
 #include "esp_log.h"
@@ -33,12 +34,14 @@
 #include "esp_gatt_common_api.h"
 #include "esp_err.h"
 #include "esp_pm.h"
-#include "esp_sleep.h"
-#include "driver/uart.h"
+#include "driver/gpio.h"
 
 #include "sdkconfig.h"
 
 #define GATTS_TAG "GATTS_OpenSmartButton"
+
+#define GPIO_INPUT_PIN     0
+#define GPIO_INPUT_MASK  1ULL<<GPIO_INPUT_PIN
 
 ///Declare the static function
 static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_if, esp_ble_gatts_cb_param_t *param);
@@ -54,8 +57,12 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
 
 #define PREPARE_BUF_MAX_SIZE 1024
 
+#define ESP_INTR_FLAG_DEFAULT 0
+
 static uint8_t char1_str[] = {0x11,0x22,0x33};
 static esp_gatt_char_prop_t a_property = 0;
+
+static xQueueHandle gpio_evt_queue = NULL;
 
 static esp_attr_value_t gatts_demo_char1_val =
 {
@@ -506,6 +513,38 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
     } while (0);
 }
 
+
+static void process_input_task(void* arg)
+{
+    uint32_t io_num;
+    for(;;) {
+        if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+            ESP_LOGI(GATTS_TAG, "GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
+            uint8_t level = (uint8_t) gpio_get_level(io_num);
+            esp_ble_gatts_send_indicate(gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
+                        gl_profile_tab[PROFILE_A_APP_ID].conn_id, gl_profile_tab[PROFILE_A_APP_ID].char_handle, 
+                        1, &level, false);
+        }
+    }
+}
+
+void configure_input(void)
+{
+    gpio_config_t io_conf;
+    io_conf.intr_type = GPIO_INTR_ANYEDGE;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pin_bit_mask = GPIO_INPUT_MASK;
+    io_conf.pull_down_en = 0;
+    io_conf.pull_up_en = 1;
+    gpio_config(&io_conf);
+}
+
+static void IRAM_ATTR gpio_isr_handler(void* arg)
+{
+    uint32_t gpio_num = (uint32_t) arg;
+    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+}
+
 void app_main(void)
 {
     esp_pm_config_esp32_t pm_config = {
@@ -575,18 +614,15 @@ void app_main(void)
         ESP_LOGE(GATTS_TAG, "set local  MTU failed, error code = %x", local_mtu_ret);
     }
 
-    uint8_t counter = 0;
+    configure_input();
 
-    while(1){
-        const TickType_t xDelay = 1000 / portTICK_PERIOD_MS;
-        vTaskDelay( xDelay );
-        if(connected){
-                esp_ble_gatts_send_indicate(gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
-                        gl_profile_tab[PROFILE_A_APP_ID].conn_id, gl_profile_tab[PROFILE_A_APP_ID].char_handle, 
-                        1, &counter, false);
-                ESP_LOGI(GATTS_TAG, "Notified");
-                counter++;
-        }
-    }
+    gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+
+    xTaskCreate(process_input_task, "process_input_task", 2048, NULL, 10, NULL);
+
+    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+
+    gpio_isr_handler_add(GPIO_INPUT_PIN, gpio_isr_handler, (void*) GPIO_INPUT_PIN);
+    
     return;
 }
