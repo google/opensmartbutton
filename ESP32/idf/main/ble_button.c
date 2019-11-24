@@ -34,6 +34,7 @@
 #include "esp_gatt_common_api.h"
 #include "esp_err.h"
 #include "esp_pm.h"
+#include "esp_sleep.h"
 #include "esp_timer.h"
 #include "driver/gpio.h"
 
@@ -61,6 +62,8 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
 #define ESP_INTR_FLAG_DEFAULT 0
 
 #define DEBOUNCE_TIME_MICROSECONDS 20000
+#define SHORT_SLEEP_MICROSECONDS 60000000
+#define LONG_SLEEP_MICROSECONDS 43200000000
 
 static uint8_t char1_str[] = {0x11,0x22,0x33};
 static esp_gatt_char_prop_t a_property = 0;
@@ -181,6 +184,9 @@ void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble
 bool connected = false;
 
 int64_t latest_interrupt_time = 0;
+int64_t advertise_start_time = 0;
+
+
 
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
@@ -218,6 +224,7 @@ static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param
         if (param->adv_start_cmpl.status != ESP_BT_STATUS_SUCCESS) {
             ESP_LOGE(GATTS_TAG, "Advertising start failed\n");
         }
+        advertise_start_time = esp_timer_get_time();
         break;
     case ESP_GAP_BLE_ADV_STOP_COMPLETE_EVT:
         if (param->adv_stop_cmpl.status != ESP_BT_STATUS_SUCCESS) {
@@ -536,6 +543,29 @@ static void process_input_task(void* arg)
     }
 }
 
+static void sleep_task(void* arg)
+{
+    const TickType_t delay_ticks = SHORT_SLEEP_MICROSECONDS / (1000 * portTICK_PERIOD_MS);
+    for(;;) {
+        vTaskDelay(delay_ticks);
+        int64_t current_time = esp_timer_get_time();
+        if(!connected)
+        {
+            if(current_time - advertise_start_time > SHORT_SLEEP_MICROSECONDS)
+            {
+                esp_deep_sleep_start();
+            }
+        }
+        else
+        {
+            if(current_time - latest_interrupt_time > LONG_SLEEP_MICROSECONDS)
+            {
+                esp_deep_sleep_start();
+            }
+        }
+    }
+}
+
 void configure_input(void)
 {
     gpio_config_t io_conf;
@@ -557,6 +587,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
         xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
     }
 }
+
 
 void app_main(void)
 {
@@ -628,10 +659,13 @@ void app_main(void)
     }
 
     configure_input();
+    esp_sleep_enable_ext0_wakeup(GPIO_INPUT_PIN, 0);
 
     gpio_evt_queue = xQueueCreate(10, sizeof(uint32_t));
 
     xTaskCreate(process_input_task, "process_input_task", 2048, NULL, 10, NULL);
+
+    xTaskCreate(sleep_task, "sleep_task", 2048, NULL, 5, NULL);
 
     gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
 
