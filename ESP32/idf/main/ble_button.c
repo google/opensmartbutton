@@ -34,6 +34,7 @@
 #include "esp_gatt_common_api.h"
 #include "esp_err.h"
 #include "esp_pm.h"
+#include "esp_timer.h"
 #include "driver/gpio.h"
 
 #include "sdkconfig.h"
@@ -58,6 +59,8 @@ static void gatts_profile_a_event_handler(esp_gatts_cb_event_t event, esp_gatt_i
 #define PREPARE_BUF_MAX_SIZE 1024
 
 #define ESP_INTR_FLAG_DEFAULT 0
+
+#define DEBOUNCE_TIME_MICROSECONDS 20000
 
 static uint8_t char1_str[] = {0x11,0x22,0x33};
 static esp_gatt_char_prop_t a_property = 0;
@@ -176,6 +179,9 @@ void example_write_event_env(esp_gatt_if_t gatts_if, prepare_type_env_t *prepare
 void example_exec_write_event_env(prepare_type_env_t *prepare_write_env, esp_ble_gatts_cb_param_t *param);
 
 bool connected = false;
+
+int64_t latest_interrupt_time = 0;
+
 
 static void gap_event_handler(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param)
 {
@@ -517,8 +523,10 @@ static void gatts_event_handler(esp_gatts_cb_event_t event, esp_gatt_if_t gatts_
 static void process_input_task(void* arg)
 {
     uint32_t io_num;
+    const TickType_t delay_ticks = DEBOUNCE_TIME_MICROSECONDS / (1000 * portTICK_PERIOD_MS);
     for(;;) {
         if(xQueueReceive(gpio_evt_queue, &io_num, portMAX_DELAY)) {
+            vTaskDelay(delay_ticks);
             ESP_LOGI(GATTS_TAG, "GPIO[%d] intr, val: %d\n", io_num, gpio_get_level(io_num));
             uint8_t level = (uint8_t) gpio_get_level(io_num);
             esp_ble_gatts_send_indicate(gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
@@ -542,7 +550,12 @@ void configure_input(void)
 static void IRAM_ATTR gpio_isr_handler(void* arg)
 {
     uint32_t gpio_num = (uint32_t) arg;
-    xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+    int64_t interrupt_time = esp_timer_get_time();
+    if(interrupt_time - latest_interrupt_time > DEBOUNCE_TIME_MICROSECONDS)
+    {
+        latest_interrupt_time = interrupt_time;
+        xQueueSendFromISR(gpio_evt_queue, &gpio_num, NULL);
+    }
 }
 
 void app_main(void)
