@@ -531,7 +531,7 @@ static void process_input_task(void* arg)
             uint8_t level = (uint8_t) gpio_get_level(io_num);
             esp_ble_gatts_send_indicate(gl_profile_tab[PROFILE_A_APP_ID].gatts_if,
                         gl_profile_tab[PROFILE_A_APP_ID].conn_id, gl_profile_tab[PROFILE_A_APP_ID].char_handle, 
-                        1, &level, false);
+                        1, &level, true);
         }
     }
 }
