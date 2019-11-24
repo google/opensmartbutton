@@ -44,9 +44,9 @@ public class GetBLENotifications extends Service {
     private static final int STATE_CONNECTED = 2;
 
     private static final UUID SERVICE_UUID =
-            UUID.fromString("4fafc201-1fb5-459e-8fcc-c5c9c331914b");
+            UUID.fromString("000000ff-0000-1000-8000-00805f9b34fb");
     private static final UUID CHARACTERISTIC_UUID =
-            UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8");
+            UUID.fromString("0000ff01-0000-1000-8000-00805f9b34fb");
     private static final UUID DESCRIPTOR_UUID =
             UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
@@ -143,7 +143,7 @@ public class GetBLENotifications extends Service {
                     Log.i(TAG, "Notification. Value: " +
                             characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8,
                                     0));
-                    Intent intent = new Intent(value==1?"com.zello.ptt.down":"com.zello.ptt.up");
+                    Intent intent = new Intent(value==0?"com.zello.ptt.down":"com.zello.ptt.up");
                     intent.putExtra("com.zello.stayHidden", true);
                     GetBLENotifications.this.sendBroadcast(intent);
                     Log.i(TAG, "Intent sent");
