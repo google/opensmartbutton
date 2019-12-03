@@ -24,6 +24,7 @@ import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothProfile;
 import android.content.Intent;
 import android.os.IBinder;
@@ -44,9 +45,9 @@ public class GetBLENotifications extends Service {
     private static final int STATE_CONNECTED = 2;
 
     private static final UUID SERVICE_UUID =
-            UUID.fromString("000000ff-0000-1000-8000-00805f9b34fb");
+            UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
     private static final UUID CHARACTERISTIC_UUID =
-            UUID.fromString("0000ff01-0000-1000-8000-00805f9b34fb");
+            UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
     private static final UUID DESCRIPTOR_UUID =
             UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
@@ -78,7 +79,7 @@ public class GetBLENotifications extends Service {
         if(intent != null){
             BluetoothDevice device = intent.getParcelableExtra(EXTRA_BLE_DEVICE);
             Log.i(TAG, "Connecting to device...");
-            device.connectGatt(this,false, gattCallback);
+            device.connectGatt(this,true, gattCallback);
         }
 
         return START_STICKY;
@@ -97,7 +98,6 @@ public class GetBLENotifications extends Service {
                 public void onConnectionStateChange(BluetoothGatt gatt, int status,
                                                     int newState) {
                     Log.i(TAG, "Connection state changed.");
-                    String intentAction;
                     if (newState == BluetoothProfile.STATE_CONNECTED) {
                         connectionState.put(gatt.getDevice(), STATE_CONNECTED);
                         Log.i(TAG, "Connected to GATT server.");
@@ -106,7 +106,7 @@ public class GetBLENotifications extends Service {
                     } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                         connectionState.put(gatt.getDevice(), STATE_DISCONNECTED);
                         Log.i(TAG, "Disconnected from GATT server.");
-                        gatt.getDevice().connectGatt(GetBLENotifications.this,false, gattCallback);
+                        gatt.getDevice().connectGatt(GetBLENotifications.this, true, gattCallback);
                     }
                 }
 
@@ -115,20 +115,28 @@ public class GetBLENotifications extends Service {
                 public void onServicesDiscovered(BluetoothGatt gatt, int status) {
                     Log.i(TAG, "Services discovered");
                     if (status == BluetoothGatt.GATT_SUCCESS) {
+                        BluetoothGattService service = gatt.getService(SERVICE_UUID);
+                        Log.i(TAG, "Service got: " + service);
+                        if(service == null){
+                            return;
+                        }
                         BluetoothGattCharacteristic characteristic =
-                                gatt.getService(SERVICE_UUID).
-                                        getCharacteristic(CHARACTERISTIC_UUID);
-                        Log.i(TAG, "Characteristic got");
-                        gatt.setCharacteristicNotification(characteristic, false);
+                                service.getCharacteristic(CHARACTERISTIC_UUID);
+                        Log.i(TAG, "Characteristic got: " + characteristic);
+                        if(characteristic == null){
+                            return;
+                        }
                         gatt.setCharacteristicNotification(characteristic, true);
                         Log.i(TAG, "Set characteristic notification");
                         BluetoothGattDescriptor descriptor = characteristic.getDescriptor(
                                 DESCRIPTOR_UUID);
                         Log.i(TAG, "Descriptor got: " + descriptor);
-                        descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                        Log.i(TAG, "Value set");
-                        gatt.writeDescriptor(descriptor);
-                        Log.i(TAG, "Descriptor written");
+                        if(descriptor != null) {
+                            descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                            Log.i(TAG, "Value set");
+                            gatt.writeDescriptor(descriptor);
+                            Log.i(TAG, "Descriptor written");
+                        }
                     } else {
                         Log.w(TAG, "onServicesDiscovered received: " + status);
                     }
@@ -143,7 +151,7 @@ public class GetBLENotifications extends Service {
                     Log.i(TAG, "Notification. Value: " +
                             characteristic.getIntValue(BluetoothGattCharacteristic.FORMAT_UINT8,
                                     0));
-                    Intent intent = new Intent(value==0?"com.zello.ptt.down":"com.zello.ptt.up");
+                    Intent intent = new Intent(value==1?"com.zello.ptt.down":"com.zello.ptt.up");
                     intent.putExtra("com.zello.stayHidden", true);
                     GetBLENotifications.this.sendBroadcast(intent);
                     Log.i(TAG, "Intent sent");
