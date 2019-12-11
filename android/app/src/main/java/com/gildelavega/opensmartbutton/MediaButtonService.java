@@ -17,20 +17,26 @@
 package com.gildelavega.opensmartbutton;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.session.MediaSession;
+import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
+import androidx.core.app.NotificationCompat;
 import androidx.media.session.MediaButtonReceiver;
 
 import java.util.HashMap;
@@ -88,8 +94,19 @@ public class MediaButtonService extends Service {
         PendingIntent pendingIntent =
                 PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
+        String NOTIFICATION_CHANNEL_ID = "";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            NOTIFICATION_CHANNEL_ID = "com.gildelavega.opensmartbutton";
+            String channelName = "OpenSmartButton";
+            NotificationChannel chan = new NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_NONE);
+            chan.setLightColor(Color.BLUE);
+            chan.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            assert manager != null;
+            manager.createNotificationChannel(chan);
+        }
         Notification notification =
-                new Notification.Builder(this)
+                new NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                         .setContentTitle(getText(R.string.notification_title))
                         .setContentText(getText(R.string.notification_message))
                         .setSmallIcon(R.drawable.antenna)
