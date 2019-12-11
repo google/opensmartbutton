@@ -26,6 +26,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.media.AudioFocusRequest;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -53,7 +54,7 @@ public class MediaButtonService extends Service {
     private MediaSessionCompat ms;
     private long lastEvent;
     private Timer buttonUpTimer;
-    private static final long MAX_PTT_DOWN_TIME_MS = 20000;
+    private static final long MAX_PTT_DOWN_TIME_MS = 8000;
 
     public MediaButtonService() {
     }
@@ -71,6 +72,7 @@ public class MediaButtonService extends Service {
                 ptt_down = false;
                 intent.putExtra("com.zello.stayHidden", true);
                 MediaButtonService.this.sendBroadcast(intent);
+                Log.i(TAG, "Auto button up sent");
             }
         }, MAX_PTT_DOWN_TIME_MS);
 
@@ -86,6 +88,7 @@ public class MediaButtonService extends Service {
             buttonUpTimer.cancel();
         }
         intent.putExtra("com.zello.stayHidden", true);
+        Log.i(TAG, "Sending intent. Down: " + ptt_down);
         MediaButtonService.this.sendBroadcast(intent);
     }
 
@@ -123,24 +126,64 @@ public class MediaButtonService extends Service {
         ms.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS);
         ms.setActive(true);
 
+//        Intent mediaButtonIntent = new Intent(Intent.ACTION_MEDIA_BUTTON, null, this, MediaButtonReceiver.class);
+//        ms.setMediaButtonReceiver(PendingIntent.getBroadcast(this, 0, mediaButtonIntent, 0));
+
         ms.setCallback(new MediaSessionCompat.Callback() {
             @Override
             public boolean onMediaButtonEvent(Intent mediaButtonIntent) {
                 Log.i(TAG, "Event: " + mediaButtonIntent);
                 long currentTime = System.currentTimeMillis();
                 if(currentTime - lastEvent > 500) {
+                    lastEvent = currentTime;
                     toggle();
                     Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
                     } else {
                         //deprecated in API 26
-                        v.vibrate(500);
+                        v.vibrate(501);
                     }
                 }
                 return super.onMediaButtonEvent(mediaButtonIntent);
             }
         });
+
+        Timer timer = new Timer();
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Log.i(TAG, "Playing audio");
+                AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+                AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+                    @Override
+                    public void onAudioFocusChange(int focusChange) {
+                        Log.i(TAG, "On focus change.");
+                    }
+                };
+// Request audio focus for playback
+                int result = audioManager.requestAudioFocus(afChangeListener,
+                        // Use the music stream.
+                        AudioManager.STREAM_MUSIC,
+                        // Request permanent focus.
+                        AudioManager.AUDIOFOCUS_GAIN);
+                Log.i(TAG, "Audio focus requested: " + result);
+//                AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
+//                AudioTrack.getMinBufferSize(48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT), AudioTrack.MODE_STREAM);
+//                at.play();
+//                ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PLAYING,0, 0).build());
+//
+//                // a little sleep
+//                try {
+//                    Thread.sleep(100);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//                at.stop();
+//                at.release();
+                    }
+                }, 1000, 1000);
+//                ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PAUSED,0, 0).build());
 
 //        // you can button by receiver after terminating your app
 //        // ms.setMediaButtonReceiver(mbr);
