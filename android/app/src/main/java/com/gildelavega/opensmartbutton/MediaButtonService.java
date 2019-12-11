@@ -129,7 +129,7 @@ public class MediaButtonService extends Service {
                 Log.i(TAG, "Event: " + mediaButtonIntent);
                 long currentTime = System.currentTimeMillis();
                 if(currentTime - lastEvent > 500) {
-//                    toggle();
+                    toggle();
                     Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
