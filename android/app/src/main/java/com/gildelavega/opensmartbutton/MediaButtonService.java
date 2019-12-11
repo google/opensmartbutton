@@ -21,15 +21,20 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.media.session.MediaSession;
+import android.os.Build;
 import android.os.IBinder;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
+import android.widget.Toast;
 
 import androidx.media.session.MediaButtonReceiver;
 
@@ -109,7 +114,14 @@ public class MediaButtonService extends Service {
                 Log.i(TAG, "Event: " + mediaButtonIntent);
                 long currentTime = System.currentTimeMillis();
                 if(currentTime - lastEvent > 500) {
-                    toggle();
+//                    toggle();
+                    Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
+                    } else {
+                        //deprecated in API 26
+                        v.vibrate(500);
+                    }
                 }
                 return super.onMediaButtonEvent(mediaButtonIntent);
             }
