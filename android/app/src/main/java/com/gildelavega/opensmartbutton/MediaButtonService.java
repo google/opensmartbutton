@@ -162,25 +162,30 @@ public class MediaButtonService extends Service {
                     }
                 };
 // Request audio focus for playback
-                int result = audioManager.requestAudioFocus(afChangeListener,
-                        // Use the music stream.
-                        AudioManager.STREAM_MUSIC,
-                        // Request permanent focus.
-                        AudioManager.AUDIOFOCUS_GAIN);
-                Log.i(TAG, "Audio focus requested: " + result);
-//                AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
-//                AudioTrack.getMinBufferSize(48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT), AudioTrack.MODE_STREAM);
-//                at.play();
-//                ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PLAYING,0, 0).build());
-//
-//                // a little sleep
-//                try {
-//                    Thread.sleep(100);
-//                } catch (InterruptedException e) {
-//                    e.printStackTrace();
-//                }
-//                at.stop();
-//                at.release();
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+                    AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
+                    AudioTrack.getMinBufferSize(48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT), AudioTrack.MODE_STREAM);
+                    at.play();
+                    ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PLAYING,0, 0).build());
+
+                    // a little sleep
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    at.stop();
+                    at.release();
+                }
+                else {
+                    int result = audioManager.requestAudioFocus(afChangeListener,
+                            // Use the music stream.
+                            AudioManager.STREAM_MUSIC,
+                            // Request permanent focus.
+                            AudioManager.AUDIOFOCUS_GAIN);
+                            Log.i(TAG, "Audio focus requested: " + result);
+                }
+
                     }
                 }, 1000, 1000);
 //                ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PAUSED,0, 0).build());
