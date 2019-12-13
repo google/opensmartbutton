@@ -50,7 +50,6 @@ import java.util.TimerTask;
 public class MediaButtonService extends Service {
 
     private static final String TAG = "MediaButtonService";
-    private boolean ptt_down = false;
     private MediaSessionCompat ms;
     private long lastEvent;
     private Timer buttonUpTimer;
@@ -69,7 +68,6 @@ public class MediaButtonService extends Service {
             @Override
             public void run() {
                 Intent intent = new Intent("com.zello.ptt.up");
-                ptt_down = false;
                 intent.putExtra("com.zello.stayHidden", true);
                 MediaButtonService.this.sendBroadcast(intent);
                 Log.i(TAG, "Auto button up sent");
@@ -78,18 +76,12 @@ public class MediaButtonService extends Service {
 
     }
 
-    public synchronized void toggle(){
-        Intent intent = new Intent(ptt_down ? "com.zello.ptt.up" : "com.zello.ptt.down");
-        ptt_down = !ptt_down;
-        if(ptt_down){
-            scheduleButtonUp();
-        }
-        else{
-            buttonUpTimer.cancel();
-        }
+    public synchronized void buttonDown(){
+        Intent intent = new Intent("com.zello.ptt.down");
         intent.putExtra("com.zello.stayHidden", true);
-        Log.i(TAG, "Sending intent. Down: " + ptt_down);
+        Log.i(TAG, "Sending intent: Button down");
         MediaButtonService.this.sendBroadcast(intent);
+        scheduleButtonUp();
     }
 
     @Override
@@ -136,7 +128,7 @@ public class MediaButtonService extends Service {
                 long currentTime = System.currentTimeMillis();
                 if(currentTime - lastEvent > 500) {
                     lastEvent = currentTime;
-                    toggle();
+                    buttonDown();
                     Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
