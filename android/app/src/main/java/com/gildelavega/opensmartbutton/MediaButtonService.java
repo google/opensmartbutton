@@ -142,7 +142,7 @@ public class MediaButtonService extends Service {
                         v.vibrate(VibrationEffect.createOneShot(500, VibrationEffect.DEFAULT_AMPLITUDE));
                     } else {
                         //deprecated in API 26
-                        v.vibrate(501);
+                        v.vibrate(500);
                     }
                 }
                 return super.onMediaButtonEvent(mediaButtonIntent);
@@ -153,63 +153,60 @@ public class MediaButtonService extends Service {
         timer.schedule(new TimerTask() {
             @Override
             public void run() {
-                Log.i(TAG, "Playing audio");
-                AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
-                AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
-                    @Override
-                    public void onAudioFocusChange(int focusChange) {
-                        Log.i(TAG, "On focus change.");
-                    }
-                };
-// Request audio focus for playback
-                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
-                    AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
-                    AudioTrack.getMinBufferSize(48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT), AudioTrack.MODE_STREAM);
-                    at.play();
-                    ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PLAYING,0, 0).build());
-
-                    // a little sleep
-                    try {
-                        Thread.sleep(100);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    at.stop();
-                    at.release();
-                }
-                else {
-                    int result = audioManager.requestAudioFocus(afChangeListener,
-                            // Use the music stream.
-                            AudioManager.STREAM_MUSIC,
-                            // Request permanent focus.
-                            AudioManager.AUDIOFOCUS_GAIN);
-                            Log.i(TAG, "Audio focus requested: " + result);
-                }
-
+                    //    recoverAudioFocus();
                     }
                 }, 1000, 1000);
-//                ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PAUSED,0, 0).build());
-
-//        // you can button by receiver after terminating your app
-//        // ms.setMediaButtonReceiver(mbr);
-//
-//        // play dummy audio
-//        AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
-//                AudioTrack.getMinBufferSize(48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT), AudioTrack.MODE_STREAM);
-//        at.play();
-//        ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PAUSED,0, 0).build());
-//
-//        // a little sleep
-//        try {
-//            Thread.sleep(10000);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//        at.stop();
-//        at.release();
+        recoverAudioFocus();
         Log.i(TAG, "Finished playing");
     }
 
+    private void playAudio(){
+        Log.i(TAG, "Playing audio");
+        AudioTrack at = new AudioTrack(AudioManager.STREAM_MUSIC, 48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT,
+                AudioTrack.getMinBufferSize(48000, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT), AudioTrack.MODE_STREAM);
+        at.play();
+        ms.setPlaybackState(new PlaybackStateCompat.Builder().setState(PlaybackStateCompat.STATE_PLAYING,0, 0).build());
+
+        // a little sleep
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        at.stop();
+        at.release();
+    }
+
+    private void recoverAudioFocus(){
+        AudioManager audioManager = (AudioManager)getSystemService(Context.AUDIO_SERVICE);
+        AudioManager.OnAudioFocusChangeListener afChangeListener = new AudioManager.OnAudioFocusChangeListener() {
+            @Override
+            public void onAudioFocusChange(int focusChange) {
+                Log.i(TAG, "On focus change: " + focusChange);
+//                if(focusChange != AudioManager.AUDIOFOCUS_GAIN) {
+                    playAudio();
+//                }
+            }
+        };
+// Request audio focus for playback
+        Integer result = null;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+            Log.i(TAG, "Playing audio");
+            result = audioManager.requestAudioFocus(new AudioFocusRequest.Builder(
+                    AudioManager.AUDIOFOCUS_GAIN).setWillPauseWhenDucked(true).setOnAudioFocusChangeListener(afChangeListener).build());
+            playAudio();
+        }
+        else {
+            result = audioManager.requestAudioFocus(afChangeListener,
+                    // Use the music stream.
+                    AudioManager.STREAM_MUSIC,
+                    // Request permanent focus.
+                    AudioManager.AUDIOFOCUS_GAIN);
+        }
+
+        Log.i(TAG, "Audio focus requested: " + result);
+
+    }
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "Starting service. Intent: " + intent);
