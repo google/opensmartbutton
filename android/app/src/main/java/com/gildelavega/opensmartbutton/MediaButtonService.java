@@ -183,9 +183,11 @@ public class MediaButtonService extends Service {
             @Override
             public void onAudioFocusChange(int focusChange) {
                 Log.i(TAG, "On focus change: " + focusChange);
+                if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
 //                if(focusChange != AudioManager.AUDIOFOCUS_GAIN) {
                     playAudio();
 //                }
+                }
             }
         };
 // Request audio focus for playback
