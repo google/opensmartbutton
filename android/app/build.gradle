@@ -5,10 +5,10 @@ android {
     buildToolsVersion "29.0.2"
     defaultConfig {
         applicationId "com.gildelavega.opensmartbutton"
-        minSdkVersion 16
+        minSdkVersion 14
         targetSdkVersion 29
-        versionCode 19
-        versionName "5.1"
+        versionCode 20
+        versionName "5.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
