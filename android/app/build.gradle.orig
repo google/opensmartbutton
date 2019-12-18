@@ -7,8 +7,13 @@ android {
         applicationId "com.gildelavega.opensmartbutton"
         minSdkVersion 14
         targetSdkVersion 29
+<<<<<<< HEAD
+        versionCode 6
+        versionName "1.2"
+=======
         versionCode 20
         versionName "5.2"
+>>>>>>> origin/android_10
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

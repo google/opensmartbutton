@@ -45,12 +45,6 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-//                Intent intent = new Intent(MainActivity.this, SelectDevice.class);
-//                startActivity(intent);
-//                IntentFilter filter = new IntentFilter(Intent.ACTION_MEDIA_BUTTON);
-//                MediaButtonIntentReceiver r = new MediaButtonIntentReceiver();
-//                filter.setPriority(1000);
-//                registerReceiver(r, filter);
                 Intent intent = new Intent(MainActivity.this, MediaButtonService.class);
                 startService(intent);
             }
