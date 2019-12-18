@@ -217,6 +217,12 @@ public class MediaButtonService extends Service {
         return START_STICKY;
     }
 
+    private void stopListening(){
+        ms.setCallback(null);
+        ms.setActive(false);
+
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
         // TODO: Return the communication channel to the service.
