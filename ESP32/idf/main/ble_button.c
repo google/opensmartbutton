@@ -104,8 +104,8 @@ static esp_ble_adv_data_t adv_data = {
     .set_scan_rsp = false,
     .include_name = true,
     .include_txpower = false,
-    .min_interval = 0x0006, //slave connection min interval, Time = min_interval * 1.25 msec
-    .max_interval = 0x0010, //slave connection max interval, Time = max_interval * 1.25 msec
+    .min_interval = 0x0006, //client connection min interval, Time = min_interval * 1.25 msec
+    .max_interval = 0x0010, //client connection max interval, Time = max_interval * 1.25 msec
     .appearance = 0x00,
     .manufacturer_len = 0,
     .p_manufacturer_data =  NULL, //&test_manufacturer[0],
